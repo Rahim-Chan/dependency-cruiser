@@ -67,14 +67,24 @@ function deriveCorePackageName(pSource) {
  *
  * @param {import("../../../types/cruise-result").IModule} pModule
  * @param {string} pPrefix
+ * @param {string} pSuffix
  * @returns {string}
  */
-export function getURLForModule(pModule, pPrefix) {
+export function getURLForModule(pModule, pPrefix, pSuffix) {
   // TODO: derive the URLs from configuration
   if (pModule.dependencyTypes?.some((pType) => pType === "core")) {
+    const lPackageName = deriveCorePackageName(pModule.source);
+    // Check if it's a Bun core module (starts with bun:)
+    if (lPackageName.startsWith("bun:")) {
+      return "https://bun.sh/docs/api/{{packageName}}".replace(
+        "{{packageName}}",
+        lPackageName.replace(/^bun:/, ""),
+      );
+    }
+    // Default to Node.js API documentation
     return "https://nodejs.org/api/{{packageName}}.html".replace(
       "{{packageName}}",
-      deriveCorePackageName(pModule.source),
+      lPackageName,
     );
   } else if (
     pModule.dependencyTypes?.some((pType) => pType.startsWith("npm"))
@@ -83,8 +93,15 @@ export function getURLForModule(pModule, pPrefix) {
       "{{packageName}}",
       deriveExternalPackageName(pModule.source),
     );
-  } else if (pPrefix) {
-    return smartURIConcat(pPrefix, pModule.source);
+  } else if (pPrefix || pSuffix) {
+    let lURL = pModule.source;
+    if (pPrefix) {
+      lURL = smartURIConcat(pPrefix, lURL);
+    }
+    if (pSuffix) {
+      lURL = `${lURL}${pSuffix}`;
+    }
+    return lURL;
   }
   return pModule.source;
 }
